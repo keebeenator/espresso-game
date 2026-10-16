@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Perfect Shot ☕ Espresso Game</title>
+<style>
+:root{--bg:#2b1d16;--card:#f6ead8;--ink:#3b2418;--accent:#c8763b;--good:#5c8d4e;--bad:#b84a3a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:Georgia,"Palatino Linotype",serif;color:var(--ink);background:
+radial-gradient(circle at 20% 10%,#5a3a28 0,transparent 40%),radial-gradient(circle at 80% 90%,#4a2f20 0,transparent 45%),
+repeating-linear-gradient(90deg,#3a271c 0 60px,#33221a 60px 120px);display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
+#app{width:min(440px,96vw);background:var(--card);border-radius:22px;padding:18px 20px 22px;box-shadow:0 20px 50px #0008,inset 0 0 0 6px #e7d3b6;position:relative}
+h1{margin:0;text-align:center;font-size:28px;letter-spacing:1px}
+.sub{text-align:center;font-style:italic;color:#7a5640;margin:2px 0 10px;font-size:14px}
+.steps{display:flex;justify-content:center;gap:6px;margin-bottom:8px}
+.steps span{width:30px;height:6px;border-radius:3px;background:#dcc4a3}
+.steps span.on{background:var(--accent)}
+.screen{display:none;animation:fade .35s}.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+h2{margin:6px 0 4px;font-size:20px;text-align:center}
+p.hint{margin:0 0 12px;text-align:center;font-size:14px;color:#6d4c38}
+button{font-family:inherit;font-size:18px;border:none;border-radius:14px;padding:13px 18px;background:var(--accent);color:#fff;cursor:pointer;width:100%;box-shadow:0 4px 0 #8d4f22;touch-action:none}
+button:active,button.held{transform:translateY(3px);box-shadow:0 1px 0 #8d4f22}
+button.sec{background:#8a6a52;box-shadow:0 4px 0 #5a4232;margin-top:8px}
+.row{display:flex;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent);height:32px}
+.labels{display:flex;justify-content:space-between;font-size:12px;color:#7a5640}
+.big{font-size:34px;text-align:center;font-weight:bold;margin:6px 0}
+.meter{position:relative;height:26px;border-radius:13px;background:#e3cfb2;overflow:hidden;margin:10px 0;box-shadow:inset 0 2px 4px #0003}
+.meter .fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#d9a46b,#a0522d)}
+.meter .zone{position:absolute;top:0;bottom:0;background:#5c8d4e55;border-left:2px solid var(--good);border-right:2px solid var(--good)}
+svg{display:block;margin:0 auto}
+.stats{display:flex;justify-content:space-around;font-size:15px;margin:6px 0 10px}
+.stats b{display:block;font-size:24px}
+.score{font-size:64px;text-align:center;font-weight:bold;line-height:1}
+.verdict{text-align:center;font-size:20px;margin:6px 0}
+.detail{font-size:13px;background:#efdcc2;border-radius:10px;padding:8px 12px;margin:8px 0;line-height:1.5}
+.best{text-align:center;font-size:14px;color:#7a5640;margin-top:8px}
+.steam{opacity:0}.steaming .steam{animation:steam 2.4s infinite ease-out}
+@keyframes steam{0%{opacity:0;transform:translateY(8px)}40%{opacity:.6}100%{opacity:0;transform:translateY(-18px)}}
+
+.choice{display:flex;gap:10px}.choice button{font-size:16px}
+.gaugewrap{display:flex;gap:12px;align-items:center;justify-content:center}
+.vbox{width:40px;height:160px;position:relative}.vslider{position:absolute;width:150px;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);margin:0}
+.tiny{font-size:12px;color:#7a5640;text-align:center}
+.pats{display:flex;gap:6px;margin:6px 0}.pats button{font-size:14px;padding:8px;background:#b99a7c;box-shadow:0 3px 0 #7d624c}
+.pats button.sel{background:var(--accent);box-shadow:0 3px 0 #8d4f22}
+.cupwrap{position:relative;width:min(260px,70vw);aspect-ratio:1;margin:6px auto;border-radius:50%;background:#fffaf2;padding:12px;box-shadow:0 6px 14px #0004,inset 0 0 0 3px #e3cfb2}
+.cupwrap canvas{position:absolute;inset:12px;width:calc(100% - 24px);height:calc(100% - 24px);border-radius:50%;touch-action:none}
+#guide{pointer-events:none}
+.milkbar{height:10px;border-radius:5px;background:#e3cfb2;overflow:hidden;margin:4px 0}.milkbar div{height:100%;background:#fbf3e6;border-right:2px solid #bfa98c}
+#resLatte{width:min(200px,55vw);margin-top:22px!important;border-radius:50%;display:block;margin:4px auto;box-shadow:0 0 0 12px #fffaf2,0 0 0 14px #3b2418,0 10px 20px #0005}
+.breakdown{display:flex;justify-content:space-around;font-size:13px;margin:12px 0 4px;text-align:center}.breakdown b{display:block;font-size:20px}
+.puff{opacity:0}.steaming .puff{animation:steam 1.1s infinite ease-out}
+.bub{transition:opacity .3s}
+
+.modebar{display:flex;gap:6px;margin:4px 0}.modebar button{font-size:13px;padding:7px;background:#b99a7c;box-shadow:0 3px 0 #7d624c}
+.modebar button.sel{background:#6f8f5e;box-shadow:0 3px 0 #4b6640}
+#motionPanel{display:none}#motionPanel.on{display:block}#touchPanel.off{display:none}
+.tiltrow{display:flex;align-items:center;justify-content:space-around;gap:8px;margin:4px 0}
+#aim{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border:2px solid #fff;border-radius:50%;pointer-events:none;box-shadow:0 0 0 2px #0004;display:none;left:50%;top:50%}
+#aim.pour{background:#fff8}
+.msg{font-size:13px;text-align:center;color:#8d4f22;min-height:16px}
+#lowBtn{font-size:15px;padding:10px}
+</style></head><body>
+<div id="app">
+<h1>☕ Perfect Shot</h1><div class="sub">a tiny espresso bar</div>
+<div class="steps" id="steps"><span></span><span></span><span></span><span></span><span></span></div>
+
+<section class="screen active" id="s-start">
+ <svg width="160" height="130" viewBox="0 0 160 130" class="steaming">
+  <path class="steam" d="M65 30 q-8 -12 0 -24" stroke="#b9a08a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path class="steam" style="animation-delay:.8s" d="M85 30 q8 -12 0 -24" stroke="#b9a08a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M30 40 h90 l-10 60 a15 15 0 0 1 -15 12 h-40 a15 15 0 0 1 -15 -12z" fill="#fffaf2" stroke="#3b2418" stroke-width="3"/>
+  <ellipse cx="75" cy="42" rx="42" ry="6" fill="#6b3a1f"/>
+  <path d="M120 55 a14 14 0 0 1 0 30 h-6" fill="none" stroke="#3b2418" stroke-width="5"/>
+  <ellipse cx="75" cy="118" rx="62" ry="7" fill="#e3cfb2" stroke="#3b2418" stroke-width="2"/>
+ </svg>
+ <p class="hint">Grind, dose, tamp and pull.<br>Aim for <b>~18g in → ~36g out</b> in <b>25–30s</b>.</p>
+ <button id="startBtn">Open the café</button>
+ <div class="best" id="bestStart"></div>
+</section>
+
+<section class="screen" id="s-grind">
+ <h2>1 · Grind size</h2><p class="hint">Finer grind = slower flow. Coarser = faster.</p>
+ <div class="big" id="grindVal">5.0</div>
+ <input type="range" id="grind" min="1" max="10" step="0.1" value="5">
+ <div class="labels"><span>Fine (powder)</span><span>Coarse (sand)</span></div><br>
+ <button id="grindNext">Grind it →</button>
+</section>
+
+<section class="screen" id="s-dose">
+ <h2>2 · Dose</h2><p class="hint">Hold to pour grounds into the basket. Target ~18g.</p>
+ <svg width="200" height="110" viewBox="0 0 200 110">
+  <rect x="30" y="20" width="140" height="60" rx="8" fill="#555" stroke="#222" stroke-width="3"/>
+  <rect x="38" y="28" width="124" height="44" rx="4" fill="#333"/>
+  <clipPath id="bk"><rect x="38" y="28" width="124" height="44" rx="4"/></clipPath>
+  <rect id="grounds" x="38" y="72" width="124" height="0" fill="#5a3520" clip-path="url(#bk)"/>
+  <rect x="170" y="42" width="30" height="14" rx="4" fill="#222"/>
+  <rect x="60" y="88" width="80" height="16" rx="3" fill="#cfcfcf" stroke="#777"/>
+ </svg>
+ <div class="big"><span id="doseVal">0.0</span>g</div>
+ <button id="doseBtn">Hold to dose</button>
+ <div class="row"><button class="sec" id="doseReset">Empty</button><button class="sec" id="doseNext">Done →</button></div>
+</section>
+
+<section class="screen" id="s-tamp">
+ <h2>3 · Tamp</h2><p class="hint">Hold to press. Release inside the green zone.</p>
+ <svg width="120" height="110" viewBox="0 0 120 110"><g id="tamper">
+  <rect x="48" y="0" width="24" height="44" rx="10" fill="#7a4a2a"/>
+  <rect x="25" y="44" width="70" height="12" rx="3" fill="#aaa" stroke="#555"/></g>
+  <rect x="20" y="80" width="80" height="22" rx="4" fill="#333"/>
+  <rect id="puck" x="24" y="70" width="72" height="14" fill="#5a3520"/>
+ </svg>
+ <div class="meter"><div class="zone" style="left:60%;width:18%"></div><div class="fill" id="tampFill"></div></div>
+ <div class="big"><span id="tampVal">0</span> <small style="font-size:16px">lbs</small></div>
+ <button id="tampBtn">Hold to tamp</button>
+</section>
+
+<section class="screen" id="s-pull">
+ <h2>4 · Pull the shot</h2><p class="hint">Hold to brew. Release to stop.</p>
+ <svg width="200" height="190" viewBox="0 0 200 190">
+  <rect x="40" y="0" width="120" height="30" rx="6" fill="#444"/>
+  <rect x="60" y="30" width="80" height="16" rx="4" fill="#666"/>
+  <rect x="160" y="22" width="36" height="10" rx="4" fill="#222"/>
+  <rect x="94" y="46" width="12" height="10" fill="#555"/>
+  <rect id="stream" x="98" y="56" width="4" height="0" fill="#6b3a1f" rx="2"/>
+  <clipPath id="cupclip"><path d="M55 110 h90 l-8 58 a10 10 0 0 1 -10 9 h-54 a10 10 0 0 1 -10 -9z"/></clipPath>
+  <rect id="liquid" x="50" y="177" width="100" height="0" fill="#6b3a1f" clip-path="url(#cupclip)"/>
+  <rect id="crema" x="50" y="177" width="100" height="0" fill="#c89260" clip-path="url(#cupclip)"/>
+  <path d="M55 110 h90 l-8 58 a10 10 0 0 1 -10 9 h-54 a10 10 0 0 1 -10 -9z" fill="none" stroke="#fffaf2" stroke-width="4"/>
+  <path d="M145 122 a14 14 0 0 1 -4 30" fill="none" stroke="#fffaf2" stroke-width="5"/>
+  <rect x="35" y="180" width="130" height="8" rx="3" fill="#888"/>
+ </svg>
+ <div class="stats"><div><b id="tVal">0.0s</b>time</div><div><b id="yVal">0.0g</b>yield</div><div><b id="rVal">1:0.0</b>ratio</div></div>
+ <button id="pullBtn">Hold to brew</button>
+ <button class="sec" id="pullDone" style="display:none">Taste it →</button>
+</section>
+
+<section class="screen" id="s-result">
+ <svg width="170" height="120" viewBox="0 0 170 120" class="steaming">
+  <path class="steam" d="M70 22 q-8 -10 0 -20" stroke="#b9a08a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path class="steam" style="animation-delay:.8s" d="M95 22 q8 -10 0 -20" stroke="#b9a08a" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M35 30 h95 l-10 62 a15 15 0 0 1 -15 12 h-45 a15 15 0 0 1 -15 -12z" fill="#fffaf2" stroke="#3b2418" stroke-width="3"/>
+  <ellipse id="resCup" cx="82" cy="33" rx="44" ry="6" fill="#6b3a1f"/>
+  <ellipse id="resCrema" cx="82" cy="33" rx="30" ry="3.5" fill="#c89260" opacity=".8"/>
+  <path d="M130 45 a14 14 0 0 1 0 30 h-6" fill="none" stroke="#3b2418" stroke-width="5"/>
+  <ellipse cx="82" cy="110" rx="66" ry="7" fill="#e3cfb2" stroke="#3b2418" stroke-width="2"/>
+ </svg>
+ <div class="score" id="scoreVal">0</div>
+ <div class="verdict" id="verdict"></div>
+ <div class="detail" id="detail"></div>
+ <button id="againBtn">Pull another ↻</button>
+ <div class="best" id="bestRes"></div>
+</section>
+
+<section class="screen" id="s-choice">
+ <h2>How will you serve it?</h2><p class="hint" id="choiceInfo"></p>
+ <div class="choice"><button id="serveEsp">☕ Espresso</button><button id="makeLatte">🥛 Make a latte</button></div>
+</section>
+
+<section class="screen" id="s-froth">
+ <h2>5 · Steam the milk</h2><p class="hint">Hold to steam. Raise the wand tip to stretch (add air) early, then sink it to swirl. Stop at 60–65°C.</p>
+ <div class="gaugewrap">
+  <div><div class="tiny">air ↑</div><div class="vbox"><input type="range" class="vslider" id="stretch" min="0" max="100" value="50"></div><div class="tiny">swirl ↓</div></div>
+  <svg width="190" height="200" viewBox="0 0 190 200" id="pitcherSvg">
+   <rect x="120" y="0" width="8" height="70" fill="#999"/>
+   <g id="wand"><line x1="124" y1="60" x2="96" y2="150" stroke="#bbb" stroke-width="7" stroke-linecap="round"/></g>
+   <path class="puff" d="M60 40 q-10 -15 0 -30" stroke="#d8c8b8" stroke-width="5" fill="none" stroke-linecap="round"/>
+   <path class="puff" style="animation-delay:.4s" d="M80 38 q10 -15 0 -30" stroke="#d8c8b8" stroke-width="5" fill="none" stroke-linecap="round"/>
+   <path class="puff" style="animation-delay:.75s" d="M100 40 q-8 -14 2 -28" stroke="#d8c8b8" stroke-width="5" fill="none" stroke-linecap="round"/>
+   <clipPath id="pclip"><path d="M40 60 h110 l-8 125 a8 8 0 0 1 -8 8 h-78 a8 8 0 0 1 -8 -8z"/></clipPath>
+   <rect id="milk" x="30" y="130" width="130" height="70" fill="#fdfaf3" clip-path="url(#pclip)"/>
+   <rect id="foam" x="30" y="130" width="130" height="0" fill="#f3ebde" clip-path="url(#pclip)"/>
+   <g id="bubbles" clip-path="url(#pclip)"></g>
+   <path d="M40 60 h110 l-8 125 a8 8 0 0 1 -8 8 h-78 a8 8 0 0 1 -8 -8z" fill="#c9ccd1" fill-opacity=".25" stroke="#8b9097" stroke-width="4"/>
+   <path d="M40 60 l-14 -8" stroke="#8b9097" stroke-width="4"/>
+   <path d="M150 80 h14 a10 10 0 0 1 10 10 v50 a10 10 0 0 1 -10 10 h-18" fill="none" stroke="#8b9097" stroke-width="6"/>
+  </svg>
+ </div>
+ <div class="meter"><div class="zone" style="left:75%;width:6.25%"></div><div class="fill" id="tempFill" style="background:linear-gradient(90deg,#8fb3d9,#e6a15c,#c0392b)"></div></div>
+ <div class="stats"><div><b id="tempVal">5°C</b>temp</div><div><b id="texVal">flat</b>texture</div></div>
+ <button id="steamBtn">Hold to steam</button>
+ <button class="sec" id="frothDone" style="display:none">Pour latte art →</button>
+</section>
+
+<section class="screen" id="s-art">
+ <h2>6 · Latte art</h2><p class="hint" id="artHint">Pick a pattern, then hold &amp; drag over the cup to pour. Pour <b>high</b> to sink milk, <b>low</b> to lay white foam.</p>
+ <div class="pats"><button data-p="heart" class="sel">♥ Heart</button><button data-p="tulip">🌷 Tulip</button><button data-p="rosetta">🌿 Rosetta</button></div>
+ <div class="modebar"><button id="modeMotion">📱 Tilt phone</button><button id="modeTouch" class="sel">👆 Touch drag</button></div>
+ <div class="cupwrap"><canvas id="art" width="280" height="280"></canvas><canvas id="guide" width="280" height="280"></canvas><div id="aim"></div></div>
+ <div class="msg" id="motionMsg"></div>
+ <div id="touchPanel"><input type="range" id="pourH" min="0" max="100" value="20"><div class="labels"><span>Low (foam)</span><span>Pour height</span><span>High (sink)</span></div></div>
+ <div id="motionPanel">
+  <div class="tiltrow">
+   <svg width="90" height="70" viewBox="0 0 90 70"><g id="pitcherTilt" style="transform-origin:45px 40px;transition:transform .08s">
+    <path d="M25 20 h40 l-4 40 a5 5 0 0 1 -5 4 h-22 a5 5 0 0 1 -5 -4z" fill="#c9ccd1" stroke="#8b9097" stroke-width="3"/>
+    <path d="M65 20 l10 -6" stroke="#8b9097" stroke-width="3"/><path d="M27 28 h-8 a5 5 0 0 0 -5 5 v14 a5 5 0 0 0 5 5 h6" fill="none" stroke="#8b9097" stroke-width="4"/></g></svg>
+   <div class="tiny">pour <b id="rateVal">0%</b><br>wiggle <b id="wigVal">0</b></div>
+   <button class="sec" id="calibBtn" style="width:auto;margin:0;font-size:14px">⚖️ Calibrate</button>
+  </div>
+  <button id="lowBtn">Hold = pitcher low (white foam) · release = high (sink)</button>
+  <button class="sec" id="enableMotion">Enable motion</button>
+  <div class="tiny">Hold phone level &amp; tap Calibrate. Tip forward to pour, tilt left/right/back to steer, wiggle side-to-side for rosetta ripples.</div>
+ </div>
+ <div class="milkbar"><div id="milkLeft" style="width:100%"></div></div>
+ <div class="row"><button class="sec" id="artReset">Start over</button><button class="sec" id="artDone">Serve latte →</button></div>
+</section>
+
+<section class="screen" id="s-latte">
+ <canvas id="resLatte" width="280" height="280"></canvas>
+ <div class="score" id="latteScore" style="margin-top:14px">0</div>
+ <div class="verdict" id="latteVerdict"></div>
+ <div class="breakdown"><div><b id="bShot">0</b>shot</div><div><b id="bMilk">0</b>milk</div><div><b id="bArt">0</b>art</div></div>
+ <div class="detail" id="latteDetail"></div>
+ <button id="latteAgain">Make another ↻</button>
+ <div class="best" id="bestLatte"></div>
+</section>
+</div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const S={grind:5,dose:0,tamp:0,time:0,yield:0};
+const KEY='espressoBest';
+const getBest=()=>{try{return +localStorage.getItem(KEY)||0}catch(e){return 0}};
+const setBest=v=>{try{localStorage.setItem(KEY,v)}catch(e){}};
+const order=['s-start','s-grind','s-dose','s-tamp','s-pull','s-choice','s-result','s-froth','s-art','s-latte'];
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));
+ const i=order.indexOf(id);[...$('steps').children].forEach((el,k)=>el.classList.toggle('on',k<i));}
+function bestText(){const b=getBest();return b?'🏆 Best score: '+b:'No best score yet';}
+// hold helper (mouse+touch via pointer events)
+function hold(btn,onTick,onRelease){let raf=null,last=0,down=false;
+ const loop=t=>{if(!down)return;const dt=Math.min(.05,(t-last)/1000);last=t;onTick(dt);raf=requestAnimationFrame(loop)};
+ const start=e=>{e.preventDefault();if(down||btn.disabled)return;down=true;btn.classList.add('held');last=performance.now();raf=requestAnimationFrame(loop)};
+ const end=()=>{if(!down)return;down=false;btn.classList.remove('held');cancelAnimationFrame(raf);onRelease&&onRelease()};
+ btn.addEventListener('pointerdown',start);['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,end));
+ btn.addEventListener('contextmenu',e=>e.preventDefault());}
+function reset(){Object.assign(S,{dose:0,tamp:0,time:0,yield:0});$('grind').value=S.grind;$('grindVal').textContent=(+S.grind).toFixed(1);
+ drawDose();drawTamp();drawPull();$('pullBtn').style.display='';$('pullBtn').disabled=false;$('pullBtn').textContent='Hold to brew';$('pullDone').style.display='none';}
+$('bestStart').textContent=bestText();
+$('startBtn').onclick=()=>{reset();show('s-grind')};
+$('grind').oninput=e=>{S.grind=+e.target.value;$('grindVal').textContent=S.grind.toFixed(1)};
+$('grindNext').onclick=()=>show('s-dose');
+// dose
+function drawDose(){$('doseVal').textContent=S.dose.toFixed(1);const h=Math.min(44,S.dose/22*44);const g=$('grounds');g.setAttribute('y',72-h);g.setAttribute('height',h);}
+hold($('doseBtn'),dt=>{S.dose=Math.min(25,S.dose+dt*(S.dose>15?2.5:6));drawDose()});
+$('doseReset').onclick=()=>{S.dose=0;drawDose()};
+$('doseNext').onclick=()=>{if(S.dose<5){$('doseBtn').textContent='Add some coffee first!';return}$('doseBtn').textContent='Hold to dose';show('s-tamp')};
+// tamp
+function drawTamp(){const p=S.tamp;$('tampFill').style.width=p+'%';$('tampVal').textContent=Math.round(p/100*50);
+ $('tamper').setAttribute('transform','translate(0,'+(p/100*14)+')');$('puck').setAttribute('y',70+p/100*6);$('puck').setAttribute('height',14-p/100*6);}
+let tampDir=1;
+hold($('tampBtn'),dt=>{S.tamp+=dt*55*(0.6+S.tamp/100);if(S.tamp>=100)S.tamp=100;drawTamp()},()=>{setTimeout(()=>{show('s-pull')},350)});
+// pull
+const crema=['#c89260'];
+function flowRate(){ // g/s; tuned so grind 5, 18g, good tamp -> ~1.35g/s
+ const grindF=Math.pow(1.28,S.grind-5);
+ const tampF=1+(69-S.tamp)/100;          // light tamp = faster channeling
+ const doseF=Math.pow(18/Math.max(S.dose,5),1.5);
+ return 1.35*grindF*tampF*doseF;}
+function drawPull(on){$('tVal').textContent=S.time.toFixed(1)+'s';$('yVal').textContent=S.yield.toFixed(1)+'g';
+ $('rVal').textContent='1:'+(S.dose?S.yield/S.dose:0).toFixed(1);
+ const h=Math.min(64,S.yield/50*64);$('liquid').setAttribute('y',177-h);$('liquid').setAttribute('height',h);
+ const ch=Math.min(5,h*.2);$('crema').setAttribute('y',177-h);$('crema').setAttribute('height',ch);
+ $('stream').setAttribute('height',on?Math.max(0,177-h-56):0);
+ $('stream').setAttribute('width',on?Math.min(6,2+flowRate()*1.5):4);$('stream').setAttribute('x',on?100-Math.min(6,2+flowRate()*1.5)/2:98);}
+let wob=0;
+hold($('pullBtn'),dt=>{S.time+=dt;const ramp=Math.min(1,Math.max(0,(S.time-3)/3)); // preinfusion
+ S.yield+=flowRate()*ramp*dt*(1+0.08*Math.sin(wob+=dt*9));drawPull(ramp>0)},
+ ()=>{drawPull(false);if(S.time>0.3){$('pullBtn').style.display='none';$('pullDone').style.display=''}});
+$('pullDone').onclick=()=>{const r=score();$('choiceInfo').textContent=`Your shot: ${S.yield.toFixed(1)}g in ${S.time.toFixed(1)}s.`;show('s-choice')};
+$('serveEsp').onclick=finish;
+function score(){
+ const ratio=S.yield/Math.max(S.dose,1);
+ const sTime=Math.max(0,1-Math.max(0,Math.abs(S.time-27.5)-2.5)/10);
+ const sYield=Math.max(0,1-Math.abs(S.yield-36)/18);
+ const sRatio=Math.max(0,1-Math.abs(ratio-2)/1);
+ const sDose=Math.max(0,1-Math.abs(S.dose-18)/5);
+ const sTamp=(S.tamp>=60&&S.tamp<=78)?1:Math.max(0,1-Math.min(Math.abs(S.tamp-60),Math.abs(S.tamp-78))/30);
+ const total=Math.round(100*(.3*sTime+.25*sYield+.2*sRatio+.13*sDose+.12*sTamp));
+ // extraction: contact time per gram & ratio
+ const ext=(S.time-27.5)/7+(ratio-2)/1.2*0.4-(S.time<20?0.3:0);
+ return {total,ext,ratio};}
+function finish(){const r=score();let v,col;
+ if(r.total>=88){v='🌟 Perfect shot! Sweet, balanced, syrupy.';col='#7a4422'}
+ else if(r.ext<-0.25){v='😖 Sour – under-extracted';col='#a8743f'}
+ else if(r.ext>0.25){v='😣 Bitter – over-extracted';col='#2a160c'}
+ else if(r.ratio<1.6){v='🥃 Too concentrated – a ristretto-ish shot';col='#4a2814'}
+ else if(r.ratio>2.6){v='💧 Thin & watery – too much yield';col='#9c6a40'}
+ else {v='🙂 Decent shot – close, keep dialing in';col='#6b3a1f'}
+ $('resCup').setAttribute('fill',col);$('resCrema').setAttribute('fill',r.ext<-.25?'#d8b48a':r.ext>.25?'#7a4a2a':'#c89260');
+ $('scoreVal').textContent=r.total;$('scoreVal').style.color=r.total>=80?'var(--good)':r.total>=50?'var(--accent)':'var(--bad)';
+ $('verdict').textContent=v;
+ const tip=r.ext<-.25?'Tip: grind finer to slow the flow.':r.ext>.25?'Tip: grind coarser to speed it up.':Math.abs(S.dose-18)>1.5?'Tip: dose closer to 18g.':(S.tamp<60||S.tamp>78)?'Tip: aim your tamp for the green zone.':'Tip: you\'re dialed in!';
+ $('detail').innerHTML=`Grind <b>${S.grind.toFixed(1)}</b> · Dose <b>${S.dose.toFixed(1)}g</b> · Tamp <b>${Math.round(S.tamp/2)} lbs</b><br>Time <b>${S.time.toFixed(1)}s</b> · Yield <b>${S.yield.toFixed(1)}g</b> · Ratio <b>1:${r.ratio.toFixed(2)}</b><br>${tip}`;
+ let best=getBest(),nb='';if(r.total>best){setBest(r.total);best=r.total;nb='🎉 New best! '}
+ $('bestRes').textContent=nb+'🏆 Best score: '+best;show('s-result');}
+$('againBtn').onclick=()=>{reset();show('s-grind')};
+// test hook: ?demo=result simulates a shot
+if(/demo=result/.test(location.search)){document.querySelectorAll('.screen').forEach(s=>s.style.animation='none');Object.assign(S,{grind:5,dose:18.2,tamp:68,time:27.4,yield:35.6});drawPull();finish();}
+// ================= LATTE =================
+const M={temp:5,air:0,bubbly:0,stretch:50,time:0};
+const LKEY='espressoBestLatte';
+const getBestL=()=>{try{return +localStorage.getItem(LKEY)||0}catch(e){return 0}};
+const setBestL=v=>{try{localStorage.setItem(LKEY,v)}catch(e){}};
+function resetMilk(){Object.assign(M,{temp:5,air:0,bubbly:0,time:0});M.stretch=+$('stretch').value;drawFroth(false);$('steamBtn').style.display='';$('frothDone').style.display='none';}
+function texture(){ // returns {label, q 0..1}
+ if(M.air<4)return{label:'flat',q:Math.max(0,M.air/4)*0.5};
+ if(M.bubbly>1.5||M.air>20)return{label:'bubbly',q:Math.max(0.1,0.6-(Math.max(M.bubbly-1.5,(M.air-20)/6))*0.25)};
+ if(M.air<7)return{label:'thin',q:0.5+(M.air-4)/6};
+ if(M.air<=15)return{label:'silky ✨',q:1-Math.min(0.3,M.bubbly*0.2)};
+ return{label:'stiff',q:0.85-(M.air-15)*0.06};}
+function milkScore(){const t=M.temp;let ts=t>=60&&t<=65?1:t<60?Math.max(0,1-(60-t)/25):Math.max(0,1-(t-65)/12);
+ if(t>70)ts*=0.4;const tx=texture();return{total:Math.round(100*(.5*ts+.5*tx.q)),ts,tx};}
+function drawFroth(on){$('pitcherSvg').classList.toggle('steaming',!!on);
+ $('tempFill').style.width=Math.min(100,M.temp/80*100)+'%';
+ $('tempVal').textContent=Math.round(M.temp)+'°C'+(M.temp>70?' 🔥':'');$('tempVal').style.color=M.temp>70?'var(--bad)':M.temp>=60&&M.temp<=65?'var(--good)':'';
+ $('texVal').textContent=texture().label;
+ const level=130-M.air*2.2;const foamH=Math.min(40,M.air*1.6);
+ $('milk').setAttribute('y',level);$('foam').setAttribute('y',level);$('foam').setAttribute('height',foamH);
+ // wand tip: stretch 100 -> tip near surface
+ const tipY=level+4+(100-M.stretch)*0.5;$('wand').innerHTML=`<line x1="124" y1="60" x2="96" y2="${tipY}" stroke="#bbb" stroke-width="7" stroke-linecap="round"/>`;
+ const g=$('bubbles');const n=Math.min(14,Math.round(M.bubbly*5));let h='';
+ for(let i=0;i<n;i++){const x=50+((i*37)%90),y=level+3+((i*13)%10);h+=`<circle cx="${x}" cy="${y}" r="${2+(i%3)}" fill="none" stroke="#d9cbb5" stroke-width="1.2"/>`}
+ g.innerHTML=h;}
+$('stretch').oninput=e=>{M.stretch=+e.target.value;drawFroth(false)};
+hold($('steamBtn'),dt=>{M.time+=dt;M.temp+=dt*9;
+ const air=dt*M.stretch/100*5*(M.temp<45?1:0.35);M.air+=air;
+ if(M.temp>=45)M.bubbly+=air*0.6;
+ if(M.stretch>80)M.bubbly+=dt*(M.stretch-80)/20*1.2;
+ if(M.stretch<40)M.bubbly=Math.max(0,M.bubbly-dt*(1-M.stretch/100)*0.8);
+ drawFroth(true)},()=>{drawFroth(false);if(M.temp>30){$('steamBtn').style.display='none';$('frothDone').style.display=''}});
+$('makeLatte').onclick=()=>{resetMilk();show('s-froth')};
+$('frothDone').onclick=()=>{resetArt();show('s-art');autoMode()};
+// ---- art ----
+const art=$('art'),actx=art.getContext('2d'),guide=$('guide'),gctx=guide.getContext('2d');
+const W=280,C=140,R=136;let pattern='heart',milkLeft=1,pointer=null,pourRAF=null,lastT=0,lastP=null;
+function patternPath(ctx,name){ctx.save();ctx.translate(C,C);
+ if(name==='heart'){ctx.beginPath();ctx.moveTo(0,70);ctx.bezierCurveTo(-90,10,-75,-70,-28,-62);ctx.bezierCurveTo(-10,-58,0,-42,0,-30);
+  ctx.bezierCurveTo(0,-42,10,-58,28,-62);ctx.bezierCurveTo(75,-70,90,10,0,70);ctx.fill();}
+ else if(name==='tulip'){[[0,50,52,26],[0,0,46,24],[0,-48,36,22]].forEach(([x,y,rx,ry])=>{ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill()});
+  ctx.fillRect(-4,-80,8,150);}
+ else{for(let i=0;i<7;i++){const y=70-i*21,rx=62-i*6;ctx.beginPath();ctx.ellipse(0,y,rx,9,0,0,Math.PI);ctx.ellipse(0,y,rx,7,0,Math.PI,0,true);ctx.fill();}
+  ctx.beginPath();ctx.ellipse(0,-78,12,10,0,0,Math.PI*2);ctx.fill();ctx.fillRect(-3,-80,6,165);}
+ ctx.restore();}
+function drawCrema(ctx){const g=ctx.createRadialGradient(C,C,10,C,C,R);g.addColorStop(0,'#b97a45');g.addColorStop(.7,'#8e5428');g.addColorStop(1,'#5c3216');
+ ctx.fillStyle=g;ctx.fillRect(0,0,W,W);
+ for(let i=0;i<120;i++){ctx.fillStyle=`rgba(${Math.random()<.5?'60,30,10':'210,160,110'},.15)`;ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*W,Math.random()*2.5,0,7);ctx.fill();}}
+function drawGuide(){gctx.clearRect(0,0,W,W);gctx.fillStyle='rgba(255,250,240,.22)';patternPath(gctx,pattern);
+ gctx.strokeStyle='rgba(255,250,240,.5)';gctx.setLineDash([4,5]);}
+function resetArt(){drawCrema(actx);milkLeft=1;$('milkLeft').style.width='100%';drawGuide();}
+document.querySelectorAll('.pats button').forEach(b=>b.onclick=()=>{pattern=b.dataset.p;document.querySelectorAll('.pats button').forEach(x=>x.classList.toggle('sel',x===b));drawGuide()});
+$('artReset').onclick=resetArt;
+function canvasPt(e){const r=art.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*W}}
+function pourAt(p,dt,speed,hOv,rate=1){const h=hOv!=null?hOv:+$('pourH').value,q=texture().q;
+ if(Math.hypot(p.x-C,p.y-C)>R)return;
+ milkLeft-=dt*rate/9;$('milkLeft').style.width=Math.max(0,milkLeft*100)+'%';if(milkLeft<=0)return;
+ if(h>55){ // high pour: milk dives under crema, lightens it slightly
+  actx.fillStyle='rgba(190,135,85,.08)';actx.beginPath();actx.arc(p.x,p.y,22,0,7);actx.fill();return;}
+ const r=Math.max(3,(15-h/6)*(1-Math.min(.6,speed/900))*(0.45+0.55*rate));
+ const n=q>0.8?1:3;
+ for(let i=0;i<n;i++){const j=(1-q)*12;const x=p.x+(Math.random()-.5)*j,y=p.y+(Math.random()-.5)*j;
+  actx.fillStyle=`rgba(252,246,236,${0.35+q*0.55})`;actx.beginPath();actx.arc(x,y,r*(n>1?0.6+Math.random()*.6:1),0,7);actx.fill();}
+ if(q<0.6&&Math.random()<(0.6-q)*1.5){actx.fillStyle='rgba(140,90,50,.7)';actx.beginPath();actx.arc(p.x+(Math.random()-.5)*r*2,p.y+(Math.random()-.5)*r*2,1.5+Math.random()*3,0,7);actx.fill();}}
+function pourLoop(t){if(!pointer)return;const dt=Math.min(.05,(t-lastT)/1000);lastT=t;
+ const sp=lastP?Math.hypot(pointer.x-lastP.x,pointer.y-lastP.y)/Math.max(dt,.001):0;
+ // interpolate between frames so fast drags draw lines
+ const steps=lastP?Math.max(1,Math.ceil(Math.hypot(pointer.x-lastP.x,pointer.y-lastP.y)/4)):1;
+ for(let i=1;i<=steps;i++){const a=lastP?{x:lastP.x+(pointer.x-lastP.x)*i/steps,y:lastP.y+(pointer.y-lastP.y)*i/steps}:pointer;pourAt(a,dt/steps,sp)}
+ lastP={...pointer};pourRAF=requestAnimationFrame(pourLoop);}
+art.addEventListener('pointerdown',e=>{e.preventDefault();if(mode!=='touch')return;art.setPointerCapture&&art.setPointerCapture(e.pointerId);pointer=canvasPt(e);lastP=null;lastT=performance.now();pourRAF=requestAnimationFrame(pourLoop)});
+art.addEventListener('pointermove',e=>{if(pointer)pointer=canvasPt(e)});
+['pointerup','pointercancel'].forEach(ev=>art.addEventListener(ev,()=>{pointer=null;cancelAnimationFrame(pourRAF)}));
+function artScore(){const tc=document.createElement('canvas');tc.width=tc.height=W;const t=tc.getContext('2d');t.fillStyle='#fff';patternPath(t,pattern);
+ const T=t.getImageData(0,0,W,W).data,A=actx.getImageData(0,0,W,W).data;let inter=0,uni=0;
+ for(let y=0;y<W;y+=2)for(let x=0;x<W;x+=2){if((x-C)**2+(y-C)**2>R*R)continue;const i=(y*W+x)*4;
+  const a=A[i]>215&&A[i+1]>200,tg=T[i+3]>128;if(a&&tg)inter++;if(a||tg)uni++;}
+ const iou=uni?inter/uni:0;return{iou,total:Math.min(100,Math.round(iou/0.8*100))};}
+function finishLatte(){const shot=score(),milk=milkScore(),a=artScore();
+ const total=Math.round(.4*shot.total+.25*milk.total+.35*a.total);
+ const rc=$('resLatte').getContext('2d');rc.clearRect(0,0,W,W);rc.drawImage(art,0,0);
+ $('latteScore').textContent=total;$('latteScore').style.color=total>=80?'var(--good)':total>=50?'var(--accent)':'var(--bad)';
+ $('bShot').textContent=shot.total;$('bMilk').textContent=milk.total;$('bArt').textContent=a.total;
+ const name={heart:'heart',tulip:'tulip',rosetta:'rosetta'}[pattern];
+ $('latteVerdict').textContent=total>=88?`🌟 Café-worthy ${name} latte!`:total>=70?`😊 Lovely latte – the ${name} shows!`:total>=45?'🙂 Tasty, if a little rustic':'😅 Well… it\'s still coffee';
+ const tips=[];if(shot.total<75)tips.push(shot.ext<-.25?'shot ran sour – grind finer':shot.ext>.25?'shot ran bitter – grind coarser':'dial in the shot');
+ if(M.temp>70)tips.push('milk was scalded – stop at 60–65°C');else if(M.temp<58)tips.push('milk was a bit cool');
+ const tx=milk.tx.label;if(tx==='bubbly')tips.push('foam was bubbly – keep the tip lower & stretch only early');else if(tx==='flat'||tx==='thin')tips.push('foam was flat – raise the tip early to add air');
+ if(a.total<60)tips.push('pour low & close to lay the white foam on the guide');
+ $('latteDetail').innerHTML=`Shot <b>${S.yield.toFixed(1)}g / ${S.time.toFixed(1)}s</b> · Milk <b>${Math.round(M.temp)}°C, ${tx}</b> · Art match <b>${Math.round(a.iou*100)}%</b><br>${tips.length?'Tips: '+tips.join('; ')+'.':'Tip: perfection. Open a café!'}`;
+ let b=getBestL(),nb='';if(total>b){setBestL(total);b=total;nb='🎉 New best! '}
+ $('bestLatte').textContent=nb+'🏆 Best latte: '+b;show('s-latte');return total;}
+
+// ---- motion (gyro) pouring ----
+let mode='touch',ori=null,neutral=null,motionOn=false,motionRAF=null,lowHeld=false,wig=0,lastG=null,lastGT=0,mLast=0,mPrev=null,gotEvent=false,rotRate=0;
+const isTouchDev=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+function setMode(m,msg){mode=m;$('modeMotion').classList.toggle('sel',m==='motion');$('modeTouch').classList.toggle('sel',m==='touch');
+ $('motionPanel').classList.toggle('on',m==='motion');$('touchPanel').classList.toggle('off',m==='motion');$('aim').style.display=m==='motion'&&motionOn?'block':'none';
+ $('motionMsg').textContent=msg||'';$('artHint').innerHTML=m==='motion'?'Pick a pattern. Tip the phone <b>forward</b> to pour, steer with tilt, hold the button for <b>low</b> pours.':'Pick a pattern, then hold &amp; drag over the cup to pour. Pour <b>high</b> to sink milk, <b>low</b> to lay white foam.';if(m==='motion'&&motionOn)startMotionLoop();else cancelAnimationFrame(motionRAF);}
+function onOri(e){if(e.beta==null&&e.gamma==null)return;gotEvent=true;ori={b:e.beta||0,g:e.gamma||0};if(!neutral)neutral={...ori};
+ const t=performance.now();if(lastG!=null){const dg=(ori.g-lastG)/Math.max(.01,(t-lastGT)/1000);wig=wig*0.9+Math.min(400,Math.abs(dg))*0.1}lastG=ori.g;lastGT=t;}
+function onMot(e){const r=e.rotationRate;if(r&&r.gamma!=null)rotRate=rotRate*0.8+Math.abs(r.gamma)*0.2;}
+async function enableMotion(){
+ if(!window.DeviceOrientationEvent){setMode('touch','No motion sensor here – using touch.');return}
+ if(!window.isSecureContext&&location.protocol!=='file:'){setMode('touch','Motion needs HTTPS – using touch.');return}
+ try{if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){setMode('touch','Motion permission denied – using touch.');return}
+   if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function'){try{await DeviceMotionEvent.requestPermission()}catch(e){}}}}
+ catch(e){setMode('touch','Motion permission failed – using touch.');return}
+ window.addEventListener('deviceorientation',onOri);window.addEventListener('devicemotion',onMot);
+ motionOn=true;gotEvent=false;neutral=null;$('enableMotion').style.display='none';setMode('motion','Waiting for sensor… hold phone level.');
+ setTimeout(()=>{if(!gotEvent&&mode==='motion'){motionOn=false;$('enableMotion').style.display='';setMode('touch','No motion data received – using touch.')}else if(gotEvent&&mode==='motion')$('motionMsg').textContent='Motion on ✓  Tip forward to pour.'},1500);}
+function tilt(){if(!ori||!neutral)return{fwd:0,side:0};let side=ori.g-neutral.g;if(side>90)side-=180;if(side<-90)side+=180;return{fwd:-(ori.b-neutral.b),side};}
+function motionLoop(t){const dt=Math.min(.05,(t-mLast)/1000||0);mLast=t;const {fwd,side}=tilt();
+ const rate=Math.max(0,Math.min(1,(fwd-8)/27)); // 8° deadzone, full pour at 35°
+ const w=Math.max(wig,rotRate)/120; // wiggle strength ~0..3
+ let x=C+Math.max(-1,Math.min(1,side/30))*R*0.85, y=C+R*0.55-Math.max(0,fwd-8)*3.2;
+ y=Math.max(C-R*0.85,Math.min(C+R*0.85,y));const p={x,y};
+ $('aim').style.left=(x/W*100)+'%';$('aim').style.top=(y/W*100)+'%';$('aim').classList.toggle('pour',rate>0);
+ $('pitcherTilt').style.transform=`rotate(${Math.max(-10,Math.min(70,fwd))}deg)`;
+ $('rateVal').textContent=Math.round(rate*100)+'%';$('wigVal').textContent=w<.3?'·':w<1?'~':'≈≈';
+ if(rate>0&&dt>0){const h=lowHeld?12:80;const sp=mPrev?Math.hypot(x-mPrev.x,y-mPrev.y)/dt:0;
+  const steps=mPrev?Math.max(1,Math.ceil(Math.hypot(x-mPrev.x,y-mPrev.y)/4)):1;
+  for(let i=1;i<=steps;i++){const a=mPrev?{x:mPrev.x+(x-mPrev.x)*i/steps,y:mPrev.y+(y-mPrev.y)*i/steps}:p;
+   pourAt(a,dt/steps,w>0.6?Math.min(sp,500):sp,h,rate);
+   if(w>0.6&&lowHeld){ // ripple: wiggle fans the foam into leaf ridges
+    const amp=Math.min(26,w*9);actx.fillStyle='rgba(252,246,236,.5)';actx.beginPath();actx.ellipse(a.x,a.y,amp,2.6,0,0,7);actx.fill();}}}
+ mPrev=rate>0?p:null;motionRAF=requestAnimationFrame(motionLoop);}
+function startMotionLoop(){cancelAnimationFrame(motionRAF);mLast=performance.now();mPrev=null;motionRAF=requestAnimationFrame(motionLoop);}
+function autoMode(){if(motionOn&&gotEvent)setMode('motion','Motion on ✓  Tip forward to pour.');
+ else if(window.DeviceOrientationEvent&&isTouchDev)setMode('motion','Tap “Enable motion”, then hold level & Calibrate.');
+ else setMode('touch',isTouchDev?'':'Desktop: using touch/mouse drag (motion needs a phone).');}
+$('enableMotion').onclick=enableMotion;
+$('calibBtn').onclick=()=>{if(ori){neutral={...ori};$('motionMsg').textContent='Calibrated ✓ level = no pour.'}else $('motionMsg').textContent='No sensor data yet.'};
+$('modeMotion').onclick=()=>{if(motionOn&&gotEvent)setMode('motion');else setMode('motion','Tap “Enable motion”.')};
+$('modeTouch').onclick=()=>setMode('touch');
+const lb=$('lowBtn');lb.addEventListener('pointerdown',e=>{e.preventDefault();lowHeld=true;lb.classList.add('held')});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>lb.addEventListener(ev,()=>{lowHeld=false;lb.classList.remove('held')}));
+lb.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelAnimationFrame(motionRAF)});
+$('artDone').onclick=()=>{cancelAnimationFrame(motionRAF);finishLatte()};
+$('latteAgain').onclick=()=>{cancelAnimationFrame(motionRAF);reset();show('s-grind')};
+if(/demo=latte/.test(location.search)){document.querySelectorAll('.screen').forEach(s=>s.style.animation='none');
+ Object.assign(S,{grind:5,dose:18.1,tamp:68,time:27.2,yield:36.1});Object.assign(M,{temp:63,air:10,bubbly:.2});
+ resetArt();actx.save();actx.fillStyle='rgba(252,246,236,.95)';actx.translate(C,C);actx.scale(.97,1.0);actx.translate(-C,-C);patternPath(actx,'heart');actx.restore();finishLatte();}
+if(/demo=froth/.test(location.search)){document.querySelectorAll('.screen').forEach(s=>s.style.animation='none');Object.assign(M,{temp:52,air:9,bubbly:.4,stretch:45});$('stretch').value=45;show('s-froth');drawFroth(true);}
+if(/demo=art/.test(location.search)){document.querySelectorAll('.screen').forEach(s=>s.style.animation='none');Object.assign(M,{temp:63,air:10,bubbly:.2});show('s-art');resetArt();
+ for(let i=0;i<40;i++)pourAt({x:C,y:200-i*3},.02,0);}
+const bestLStart=getBestL();if(bestLStart)$('bestStart').textContent+=' · ☕🥛 Best latte: '+bestLStart;
+window.__espresso={get mode(){return mode},get milkLeft(){return milkLeft},S,M,flowRate,score,milkScore,artScore,texture,get pattern(){return pattern}};
+})();
+</script></body></html>
