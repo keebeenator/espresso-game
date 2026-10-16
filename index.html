@@ -199,6 +199,7 @@ svg{display:block;margin:0 auto}
    <div class="tiny">pour <b id="rateVal">0%</b><br>wiggle <b id="wigVal">0</b></div>
    <button class="sec" id="calibBtn" style="width:auto;margin:0;font-size:14px">⚖️ Calibrate</button>
   </div>
+  <div class="labels" style="align-items:center;gap:8px"><span>Sensitivity</span><input type="range" id="sens" min="0.4" max="2" step="0.05" value="1" style="flex:1"><b id="sensVal">1.0×</b></div>
   <button id="lowBtn">Hold = pitcher low (white foam) · release = high (sink)</button>
   <button class="sec" id="enableMotion">Enable motion</button>
   <div class="tiny">Hold phone level &amp; tap Calibrate. Tip forward to pour, tilt left/right/back to steer, wiggle side-to-side for rosetta ripples.</div>
@@ -393,37 +394,41 @@ function finishLatte(){const shot=score(),milk=milkScore(),a=artScore();
  $('bestLatte').textContent=nb+'🏆 Best latte: '+b;show('s-latte');return total;}
 
 // ---- motion (gyro) pouring ----
-let mode='touch',ori=null,neutral=null,motionOn=false,motionRAF=null,lowHeld=false,wig=0,lastG=null,lastGT=0,mLast=0,mPrev=null,gotEvent=false,rotRate=0;
+let aimPos=null,mode='touch',ori=null,neutral=null,motionOn=false,motionRAF=null,lowHeld=false,wig=0,lastG=null,lastGT=0,mLast=0,mPrev=null,gotEvent=false,rotRate=0;
 const isTouchDev=('ontouchstart' in window)||navigator.maxTouchPoints>0;
 function setMode(m,msg){mode=m;$('modeMotion').classList.toggle('sel',m==='motion');$('modeTouch').classList.toggle('sel',m==='touch');
  $('motionPanel').classList.toggle('on',m==='motion');$('touchPanel').classList.toggle('off',m==='motion');$('aim').style.display=m==='motion'&&motionOn?'block':'none';
  $('motionMsg').textContent=msg||'';$('artHint').innerHTML=m==='motion'?'Pick a pattern. Tip the phone <b>forward</b> to pour, steer with tilt, hold the button for <b>low</b> pours.':'Pick a pattern, then hold &amp; drag over the cup to pour. Pour <b>high</b> to sink milk, <b>low</b> to lay white foam.';if(m==='motion'&&motionOn)startMotionLoop();else cancelAnimationFrame(motionRAF);}
-function onOri(e){if(e.beta==null&&e.gamma==null)return;gotEvent=true;ori={b:e.beta||0,g:e.gamma||0};if(!neutral)neutral={...ori};
- const t=performance.now();if(lastG!=null){const dg=(ori.g-lastG)/Math.max(.01,(t-lastGT)/1000);wig=wig*0.9+Math.min(400,Math.abs(dg))*0.1}lastG=ori.g;lastGT=t;}
+const SM=0.15;let sens=1;try{sens=+localStorage.getItem('espressoSens')||1}catch(e){}
+function onOri(e){if(e.beta==null&&e.gamma==null)return;gotEvent=true;const raw={b:e.beta||0,g:e.gamma||0};ori=ori?{b:ori.b+(raw.b-ori.b)*SM,g:ori.g+(raw.g-ori.g)*SM}:raw;if(!neutral)neutral={...ori};
+ const t=performance.now();if(lastG!=null){const dg=(raw.g-lastG)/Math.max(.01,(t-lastGT)/1000);wig=wig*0.9+Math.min(400,Math.abs(dg))*0.1}lastG=raw.g;lastGT=t;}
 function onMot(e){const r=e.rotationRate;if(r&&r.gamma!=null)rotRate=rotRate*0.8+Math.abs(r.gamma)*0.2;}
 async function enableMotion(){
  if(!window.DeviceOrientationEvent){setMode('touch','No motion sensor here – using touch.');return}
  if(!window.isSecureContext&&location.protocol!=='file:'){setMode('touch','Motion needs HTTPS – using touch.');return}
- try{if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){setMode('touch','Motion permission denied – using touch.');return}
+ try{if(typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();if(r!=='granted'){setMode('touch','Motion permission denied – using touch. (Brave: allow Motion sensors in Site settings, or use Chrome/Safari.)');return}
    if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function'){try{await DeviceMotionEvent.requestPermission()}catch(e){}}}}
  catch(e){setMode('touch','Motion permission failed – using touch.');return}
  window.addEventListener('deviceorientation',onOri);window.addEventListener('devicemotion',onMot);
  motionOn=true;gotEvent=false;neutral=null;$('enableMotion').style.display='none';setMode('motion','Waiting for sensor… hold phone level.');
- setTimeout(()=>{if(!gotEvent&&mode==='motion'){motionOn=false;$('enableMotion').style.display='';setMode('touch','No motion data received – using touch.')}else if(gotEvent&&mode==='motion')$('motionMsg').textContent='Motion on ✓  Tip forward to pour.'},1500);}
-function tilt(){if(!ori||!neutral)return{fwd:0,side:0};let side=ori.g-neutral.g;if(side>90)side-=180;if(side<-90)side+=180;return{fwd:-(ori.b-neutral.b),side};}
+ setTimeout(()=>{if(!gotEvent&&mode==='motion'){motionOn=false;$('enableMotion').style.display='';setMode('touch','No motion data received – using touch. Brave blocks sensors by default: allow Motion sensors in Site settings (or use Chrome).')}else if(gotEvent&&mode==='motion')$('motionMsg').textContent='Motion on ✓  Tip forward to pour.'},1500);}
+function tilt(){if(!ori||!neutral)return{fwd:0,side:0};let side=ori.g-neutral.g;if(side>90)side-=180;if(side<-90)side+=180;return{fwd:-(ori.b-neutral.b)*sens,side:side*sens};}
 function motionLoop(t){const dt=Math.min(.05,(t-mLast)/1000||0);mLast=t;const {fwd,side}=tilt();
- const rate=Math.max(0,Math.min(1,(fwd-8)/27)); // 8° deadzone, full pour at 35°
- const w=Math.max(wig,rotRate)/120; // wiggle strength ~0..3
- let x=C+Math.max(-1,Math.min(1,side/30))*R*0.85, y=C+R*0.55-Math.max(0,fwd-8)*3.2;
- y=Math.max(C-R*0.85,Math.min(C+R*0.85,y));const p={x,y};
+ const DZ=12,FULL=55,EDGE=58; // dead zone, degrees past DZ for full pour, side degrees to reach rim
+ const rate=Math.max(0,Math.min(1,(fwd-DZ)/FULL));
+ const w=Math.max(wig,rotRate)/240; // wiggle strength (halved vs v3)
+ let tx=C+Math.max(-1,Math.min(1,side/EDGE))*R*0.85, ty=C+R*0.55-Math.max(0,Math.min(1,(fwd-DZ)/FULL))*R*1.4;
+ ty=Math.max(C-R*0.85,Math.min(C+R*0.85,ty));
+ if(!aimPos)aimPos={x:tx,y:ty};const k=Math.min(1,dt*4); // lerp: stream glides toward target
+ aimPos.x+=(tx-aimPos.x)*k;aimPos.y+=(ty-aimPos.y)*k;const x=aimPos.x,y=aimPos.y,p={x,y};
  $('aim').style.left=(x/W*100)+'%';$('aim').style.top=(y/W*100)+'%';$('aim').classList.toggle('pour',rate>0);
  $('pitcherTilt').style.transform=`rotate(${Math.max(-10,Math.min(70,fwd))}deg)`;
- $('rateVal').textContent=Math.round(rate*100)+'%';$('wigVal').textContent=w<.3?'·':w<1?'~':'≈≈';
+ $('rateVal').textContent=Math.round(rate*100)+'%';$('wigVal').textContent=w<.4?'·':w<.9?'~':'≈≈';
  if(rate>0&&dt>0){const h=lowHeld?12:80;const sp=mPrev?Math.hypot(x-mPrev.x,y-mPrev.y)/dt:0;
   const steps=mPrev?Math.max(1,Math.ceil(Math.hypot(x-mPrev.x,y-mPrev.y)/4)):1;
   for(let i=1;i<=steps;i++){const a=mPrev?{x:mPrev.x+(x-mPrev.x)*i/steps,y:mPrev.y+(y-mPrev.y)*i/steps}:p;
-   pourAt(a,dt/steps,w>0.6?Math.min(sp,500):sp,h,rate);
-   if(w>0.6&&lowHeld){ // ripple: wiggle fans the foam into leaf ridges
+   pourAt(a,dt/steps,w>0.9?Math.min(sp,500):sp,h,rate);
+   if(w>0.9&&lowHeld){ // ripple: wiggle fans the foam into leaf ridges
     const amp=Math.min(26,w*9);actx.fillStyle='rgba(252,246,236,.5)';actx.beginPath();actx.ellipse(a.x,a.y,amp,2.6,0,0,7);actx.fill();}}}
  mPrev=rate>0?p:null;motionRAF=requestAnimationFrame(motionLoop);}
 function startMotionLoop(){cancelAnimationFrame(motionRAF);mLast=performance.now();mPrev=null;motionRAF=requestAnimationFrame(motionLoop);}
@@ -431,6 +436,8 @@ function autoMode(){if(motionOn&&gotEvent)setMode('motion','Motion on ✓  Tip f
  else if(window.DeviceOrientationEvent&&isTouchDev)setMode('motion','Tap “Enable motion”, then hold level & Calibrate.');
  else setMode('touch',isTouchDev?'':'Desktop: using touch/mouse drag (motion needs a phone).');}
 $('enableMotion').onclick=enableMotion;
+$('sens').value=sens;$('sensVal').textContent=sens.toFixed(2).replace(/0$/,'')+'×';
+$('sens').oninput=e=>{sens=+e.target.value;$('sensVal').textContent=sens.toFixed(2).replace(/0$/,'')+'×';try{localStorage.setItem('espressoSens',sens)}catch(_){}};
 $('calibBtn').onclick=()=>{if(ori){neutral={...ori};$('motionMsg').textContent='Calibrated ✓ level = no pour.'}else $('motionMsg').textContent='No sensor data yet.'};
 $('modeMotion').onclick=()=>{if(motionOn&&gotEvent)setMode('motion');else setMode('motion','Tap “Enable motion”.')};
 $('modeTouch').onclick=()=>setMode('touch');
